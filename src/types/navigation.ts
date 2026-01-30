@@ -3,6 +3,8 @@ export type RootStackParamList = {
   Home: undefined;
   Dashboard: undefined;
   Applications: undefined;
+  Projects: undefined;
+  ProjectDetails: { id: string };
   Discover: undefined;
   SwedishGrantDetails: { id: string };
   Organizations: undefined;

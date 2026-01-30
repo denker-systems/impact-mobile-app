@@ -15,6 +15,8 @@ import { HomeScreen } from '@/screens/home/HomeScreen';
 import { DiscoverScreen } from '@/screens/discover/DiscoverScreen';
 import { SwedishGrantDetailsScreen } from '@/screens/discover/SwedishGrantDetailsScreen';
 import { ApplicationsScreen } from '@/screens/applications/ApplicationsScreen';
+import { ProjectsScreen } from '@/screens/projects/ProjectsScreen';
+import { ProjectDetailsScreen } from '@/screens/projects/ProjectDetailsScreen';
 import { OrganizationsScreen } from '@/screens/organizations/OrganizationsScreen';
 import { MessagesScreen } from '@/screens/messages/MessagesScreen';
 import { ReportingScreen } from '@/screens/reporting/ReportingScreen';
@@ -99,6 +101,16 @@ const AppNavigatorContent = () => {
                 name="Messages"
                 component={MessagesScreen}
                 options={{ title: 'Meddelanden' }}
+              />
+              <Stack.Screen
+                name="Projects"
+                component={ProjectsScreen}
+                options={{ title: 'Projekt' }}
+              />
+              <Stack.Screen
+                name="ProjectDetails"
+                component={ProjectDetailsScreen}
+                options={{ title: 'Projektinformation' }}
               />
               <Stack.Screen
                 name="Reporting"
