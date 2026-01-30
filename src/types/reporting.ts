@@ -30,6 +30,68 @@ export interface Report {
   };
 }
 
+export interface Project {
+  id: string;
+  name: string;
+  description?: string;
+  status: string;
+  project_type?: string;
+  project_lead_details?: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    organization?: string;
+  };
+  company_signatory_details?: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    organization?: string;
+  };
+  start_date?: string;
+  end_date?: string;
+  created_at: string;
+  organization_id: string;
+  grant_diarienummer?: string;
+  partners?: {
+    name?: string;
+    organization?: string;
+    role?: string;
+  }[];
+}
+
+export interface Subtask {
+  id: string;
+  task_id: string;
+  title: string;
+  status: 'todo' | 'done';
+  sort_order: number;
+}
+
+export interface Task {
+  id: string;
+  user_id: string;
+  organization_id?: string;
+  project_id?: string;
+  assigned_to?: string;
+  title: string;
+  description?: string;
+  status: TaskStatus;
+  priority: TaskPriority;
+  due_date?: string;
+  completed_at?: string;
+  tags: string[];
+  estimated_hours?: number;
+  actual_hours?: number;
+  created_at: string;
+  updated_at: string;
+  subtasks?: Subtask[];
+  project?: {
+    id: string;
+    name: string;
+  };
+}
+
 export interface DashboardStats {
   total_reports: number;
   total_hours: number;

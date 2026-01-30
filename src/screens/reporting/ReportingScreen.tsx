@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ScrollView,
   SafeAreaView,
+  Dimensions,
 } from 'react-native';
 import {
   BarChart3,
@@ -15,17 +16,30 @@ import {
   Clock,
   TrendingUp,
   Plus,
-  LayoutGrid,
   Calendar,
+  ChevronLeft,
+  CheckSquare,
 } from 'lucide-react-native';
-import { useReports, useReportingStats } from '@/hooks/useReports';
-import { useOrganization } from '@/contexts/OrganizationContext';
-import { format } from 'date-fns';
+import {
+  format,
+  startOfWeek,
+  endOfWeek,
+  eachDayOfInterval,
+  addWeeks,
+  subWeeks,
+  isSameDay,
+} from 'date-fns';
 import { sv } from 'date-fns/locale';
+import { useReports, useReportingStats } from '@/hooks/useReports';
+import { useTasks } from '@/hooks/useTasks';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { StatusBar } from 'expo-status-bar';
-import { ReportStatus, Report } from '@/types/reporting';
+import { ReportStatus, Report, TaskStatus, Task } from '@/types/reporting';
 import { CreateReportModal } from '@/components/features/reporting/CreateReportModal';
 import { ReportDetailsModal } from '@/components/features/reporting/ReportDetailsModal';
+import { TaskDetailsModal } from '@/components/features/reporting/TaskDetailsModal';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const STATUS_CONFIG: Record<ReportStatus, { label: string; color: string; bgColor: string }> = {
   draft: { label: 'Utkast', color: 'text-orange-600', bgColor: 'bg-orange-500/10' },
@@ -36,10 +50,13 @@ const STATUS_CONFIG: Record<ReportStatus, { label: string; color: string; bgColo
 
 export const ReportingScreen = () => {
   const { selectedOrganizationId } = useOrganization();
-  const [view, setView] = useState<'list' | 'stats'>('list');
+  const [view, setView] = useState<'list' | 'timeline' | 'tasks' | 'stats'>('list');
+  const [currentWeek, setCurrentWeek] = useState(new Date());
   const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [isDetailsModalVisible, setIsDetailsModalVisible] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [isTaskDetailsModalVisible, setIsTaskDetailsModalVisible] = useState(false);
 
   const {
     data: reports,
@@ -49,10 +66,154 @@ export const ReportingScreen = () => {
   const { data: stats, isLoading: isLoadingStats } = useReportingStats(
     selectedOrganizationId || undefined,
   );
+  const { tasks, isLoading: isLoadingTasks } = useTasks(
+    selectedOrganizationId ? { organization_id: selectedOrganizationId } : undefined,
+  );
+
+  const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1 });
+  const weekEnd = endOfWeek(currentWeek, { weekStartsOn: 1 });
+  const daysInWeek = eachDayOfInterval({ start: weekStart, end: weekEnd });
+
+  const reportsByDay = daysInWeek.map((day) => ({
+    date: day,
+    reports: reports?.filter((report) => isSameDay(new Date(report.report_date), day)) || [],
+  }));
 
   const handleOpenReport = (report: Report) => {
     setSelectedReport(report);
     setIsDetailsModalVisible(true);
+  };
+
+  const renderTimeline = () => (
+    <View className="flex-1">
+      <View className="flex-row items-center justify-between px-6 py-4 bg-background-0 border-b border-border/50">
+        <TouchableOpacity onPress={() => setCurrentWeek(subWeeks(currentWeek, 1))} className="p-2">
+          <ChevronLeft size={20} color="#6B7280" />
+        </TouchableOpacity>
+        <Text className="text-body font-bold text-foreground">
+          Vecka {format(currentWeek, 'w, yyyy', { locale: sv })}
+        </Text>
+        <TouchableOpacity onPress={() => setCurrentWeek(addWeeks(currentWeek, 1))} className="p-2">
+          <ChevronRight size={20} color="#6B7280" />
+        </TouchableOpacity>
+      </View>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-1">
+        {reportsByDay.map(({ date, reports: dayReports }: { date: Date; reports: Report[] }) => (
+          <View
+            key={date.toISOString()}
+            style={{ width: SCREEN_WIDTH * 0.8 }}
+            className={`border-r border-border/30 p-4 ${
+              isSameDay(date, new Date()) ? 'bg-primary/5' : ''
+            }`}
+          >
+            <View className="flex-row items-center justify-between mb-4">
+              <View>
+                <Text
+                  className={`text-body-sm font-bold ${
+                    isSameDay(date, new Date()) ? 'text-primary' : 'text-foreground'
+                  }`}
+                >
+                  {format(date, 'EEEE', { locale: sv })}
+                </Text>
+                <Text className="text-tiny text-muted-foreground">
+                  {format(date, 'd MMMM', { locale: sv })}
+                </Text>
+              </View>
+              {dayReports.length > 0 && (
+                <View className="bg-background-100 px-2 py-0.5 rounded">
+                  <Text className="text-tiny font-bold text-muted-foreground">
+                    {dayReports.length}
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {dayReports.length === 0 ? (
+                <View className="py-10 items-center">
+                  <Text className="text-tiny text-muted-foreground italic">Inga rapporter</Text>
+                </View>
+              ) : (
+                dayReports.map((report: Report) => (
+                  <TouchableOpacity
+                    key={report.id}
+                    onPress={() => handleOpenReport(report)}
+                    className="bg-background-0 p-3 rounded-2xl border border-border mb-2 shadow-sm"
+                  >
+                    <Text className="text-body-sm font-bold text-foreground" numberOfLines={1}>
+                      {report.title}
+                    </Text>
+                    <Text className="text-tiny text-muted-foreground mt-1" numberOfLines={1}>
+                      {report.project?.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))
+              )}
+            </ScrollView>
+          </View>
+        ))}
+      </ScrollView>
+    </View>
+  );
+
+  const renderTasks = () => {
+    const columns: { title: string; status: TaskStatus; color: string }[] = [
+      { title: 'Att göra', status: 'todo', color: 'border-slate-200' },
+      { title: 'Pågående', status: 'in_progress', color: 'border-blue-200' },
+      { title: 'Klart', status: 'done', color: 'border-green-200' },
+    ];
+
+    return (
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-1">
+        {columns.map((col) => (
+          <View
+            key={col.status}
+            style={{ width: SCREEN_WIDTH * 0.85 }}
+            className="p-4 border-r border-border/30"
+          >
+            <View className="flex-row items-center justify-between mb-4">
+              <Text className="text-body font-bold text-foreground">{col.title}</Text>
+              <View className="bg-background-100 px-2 py-0.5 rounded">
+                <Text className="text-tiny font-bold text-muted-foreground">
+                  {tasks?.filter((t: Task) => t.status === col.status).length || 0}
+                </Text>
+              </View>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {tasks
+                ?.filter((t: Task) => t.status === col.status)
+                .map((task: Task) => (
+                  <View
+                    key={task.id}
+                    className={`bg-background-0 p-4 rounded-2xl border ${col.color} mb-3 shadow-sm`}
+                  >
+                    <Text className="text-body-sm font-bold text-foreground mb-1">
+                      {task.title}
+                    </Text>
+                    {task.description && (
+                      <Text className="text-tiny text-muted-foreground mb-2" numberOfLines={2}>
+                        {task.description}
+                      </Text>
+                    )}
+                    <View className="flex-row justify-between items-center mt-2">
+                      <View className="bg-background-50 px-2 py-0.5 rounded border border-border">
+                        <Text className="text-[10px] text-muted-foreground uppercase">
+                          {task.priority}
+                        </Text>
+                      </View>
+                      {task.project && (
+                        <Text className="text-[10px] text-primary font-medium">
+                          {task.project.name}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                ))}
+            </ScrollView>
+          </View>
+        ))}
+      </ScrollView>
+    );
   };
 
   const renderStats = () => (
@@ -144,11 +305,17 @@ export const ReportingScreen = () => {
     );
   };
 
+  const TABS = [
+    { id: 'list', label: 'Rapporter', icon: FileText },
+    { id: 'timeline', label: 'Timeline', icon: Calendar },
+    { id: 'tasks', label: 'Uppgifter', icon: CheckSquare },
+    { id: 'stats', label: 'Statistik', icon: BarChart3 },
+  ];
+
   return (
     <SafeAreaView className="flex-1 bg-background-50">
       <StatusBar style="auto" />
 
-      {/* Header */}
       <View className="px-6 py-4 bg-background-0 border-b border-border">
         <View className="flex-row justify-between items-center mb-4">
           <View>
@@ -165,76 +332,81 @@ export const ReportingScreen = () => {
           </TouchableOpacity>
         </View>
 
-        {/* View Toggle */}
         <View className="flex-row bg-background-50 p-1 rounded-2xl border border-border">
-          <TouchableOpacity
-            onPress={() => setView('list')}
-            className={`flex-1 flex-row items-center justify-center py-2.5 rounded-xl ${view === 'list' ? 'bg-background-0 shadow-sm' : ''}`}
-          >
-            <LayoutGrid
-              size={16}
-              color={view === 'list' ? '#0EA5E9' : '#6B7280'}
-              className="mr-2"
-            />
-            <Text
-              className={`text-body-sm font-bold ${view === 'list' ? 'text-foreground' : 'text-muted-foreground'}`}
-            >
-              Lista
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setView('stats')}
-            className={`flex-1 flex-row items-center justify-center py-2.5 rounded-xl ${view === 'stats' ? 'bg-background-0 shadow-sm' : ''}`}
-          >
-            <BarChart3
-              size={16}
-              color={view === 'stats' ? '#0EA5E9' : '#6B7280'}
-              className="mr-2"
-            />
-            <Text
-              className={`text-body-sm font-bold ${view === 'stats' ? 'text-foreground' : 'text-muted-foreground'}`}
-            >
-              Statistik
-            </Text>
-          </TouchableOpacity>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row">
+            {TABS.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = view === tab.id;
+              return (
+                <TouchableOpacity
+                  key={tab.id}
+                  onPress={() => setView(tab.id as any)}
+                  className={`flex-row items-center justify-center py-2 px-4 rounded-xl mx-0.5 ${
+                    isActive ? 'bg-background-0 shadow-sm border border-border/50' : ''
+                  }`}
+                >
+                  <Icon size={16} color={isActive ? '#0EA5E9' : '#6B7280'} className="mr-2" />
+                  <Text
+                    className={`text-body-sm font-bold ${
+                      isActive ? 'text-foreground' : 'text-muted-foreground'
+                    }`}
+                  >
+                    {tab.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
         </View>
       </View>
 
-      {view === 'list' ? (
-        isLoadingReports ? (
-          <View className="flex-1 items-center justify-center">
-            <ActivityIndicator size="large" color="#0EA5E9" />
-          </View>
-        ) : (
-          <FlatList
-            data={reports}
-            keyExtractor={(item) => item.id}
-            renderItem={renderReportItem}
-            contentContainerStyle={{ paddingBottom: 40 }}
-            onRefresh={refetch}
-            refreshing={isLoadingReports}
-            ListEmptyComponent={() => (
-              <View className="flex-1 items-center justify-center py-20 px-10">
-                <BarChart3 size={48} color="#9CA3AF" />
-                <Text className="text-h3 font-bold text-foreground mt-4 text-center">
-                  Inga rapporter
-                </Text>
-                <Text className="text-body text-muted-foreground text-center mt-2">
-                  Här samlas alla dina projektrapporter.
-                </Text>
-              </View>
-            )}
-          />
-        )
-      ) : isLoadingStats ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#0EA5E9" />
-        </View>
-      ) : (
-        renderStats()
-      )}
+      <View className="flex-1">
+        {view === 'list' &&
+          (isLoadingReports ? (
+            <View className="flex-1 items-center justify-center">
+              <ActivityIndicator size="large" color="#0EA5E9" />
+            </View>
+          ) : (
+            <FlatList
+              data={reports}
+              keyExtractor={(item) => item.id}
+              renderItem={renderReportItem}
+              contentContainerStyle={{ paddingBottom: 40 }}
+              onRefresh={refetch}
+              refreshing={isLoadingReports}
+              ListEmptyComponent={() => (
+                <View className="flex-1 items-center justify-center py-20 px-10">
+                  <BarChart3 size={48} color="#9CA3AF" />
+                  <Text className="text-h3 font-bold text-foreground mt-4 text-center">
+                    Inga rapporter
+                  </Text>
+                  <Text className="text-body text-muted-foreground text-center mt-2">
+                    Här samlas alla dina projektrapporter.
+                  </Text>
+                </View>
+              )}
+            />
+          ))}
+        {view === 'timeline' &&
+          (isLoadingReports ? (
+            <ActivityIndicator className="mt-20" color="#0EA5E9" />
+          ) : (
+            renderTimeline()
+          ))}
+        {view === 'tasks' &&
+          (isLoadingTasks ? (
+            <ActivityIndicator className="mt-20" color="#0EA5E9" />
+          ) : (
+            renderTasks()
+          ))}
+        {view === 'stats' &&
+          (isLoadingStats ? (
+            <ActivityIndicator className="mt-20" color="#0EA5E9" />
+          ) : (
+            renderStats()
+          ))}
+      </View>
 
-      {/* Modaler */}
       <CreateReportModal
         visible={isCreateModalVisible}
         onClose={() => setIsCreateModalVisible(false)}
@@ -245,6 +417,14 @@ export const ReportingScreen = () => {
         onClose={() => {
           setIsDetailsModalVisible(false);
           setSelectedReport(null);
+        }}
+      />
+      <TaskDetailsModal
+        task={selectedTask}
+        visible={isTaskDetailsModalVisible}
+        onClose={() => {
+          setIsTaskDetailsModalVisible(false);
+          setSelectedTask(null);
         }}
       />
     </SafeAreaView>

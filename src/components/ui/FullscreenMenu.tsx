@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   LayoutDashboard,
   Search,
+  Briefcase,
   Building2,
   FileText,
   MessageSquare,
@@ -85,6 +86,12 @@ export function FullscreenMenu({ visible, onClose, onNavigate, onLogout }: Fulls
                       title="Dashboard"
                       subtitle="Översikt av dina projekt"
                       onPress={() => handleItemPress('Dashboard')}
+                    />
+                    <MenuItem
+                      icon={Briefcase}
+                      title="Projekt"
+                      subtitle="Hantera dina anslagsprojekt"
+                      onPress={() => handleItemPress('Projects')}
                     />
                     <MenuItem
                       icon={Search}
