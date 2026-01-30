@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-bg-0: 255 255 255;
+    --color-bg-50: 249 250 251;
+    --color-bg-100: 243 244 246;
+    --color-bg-200: 229 231 235;
+    --color-foreground: 17 24 39;
+    --color-muted: 243 244 246;
+    --color-muted-foreground: 107 114 128;
+    --color-border: 229 231 235;
+  }
+
+  .dark {
+    --color-bg-0: 17 24 39;
+    --color-bg-50: 31 41 55;
+    --color-bg-100: 55 65 81;
+    --color-bg-200: 75 85 99;
+    --color-foreground: 249 250 251;
+    --color-muted: 55 65 81;
+    --color-muted-foreground: 156 163 175;
+    --color-border: 75 85 99;
+  }
+}

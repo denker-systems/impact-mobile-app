@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "Impact Mobile",
+    "slug": "impact-mobile-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.impact.mobile.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.impact.mobile.app"
+    },
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}
