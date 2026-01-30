@@ -23,7 +23,7 @@ module.exports = {
           700: '#0369A1',
           800: '#075985',
           900: '#0C4A6E',
-          DEFAULT: '#0EA5E9',
+          DEFAULT: 'rgb(var(--color-primary) / <alpha-value>)',
         },
         foreground: 'rgb(var(--color-foreground) / <alpha-value>)',
         muted: {
